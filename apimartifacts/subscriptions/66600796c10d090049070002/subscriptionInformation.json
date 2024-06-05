@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "scope": "/subscriptions/c8a27c19-c50a-4f79-a9eb-bcd986fac66b/resourceGroups/rg-eus-001/providers/Microsoft.ApiManagement/service/apim-eus-001/products/unlimited",
+    "allowTracing": false,
+    "ownerId": "/subscriptions/c8a27c19-c50a-4f79-a9eb-bcd986fac66b/resourceGroups/rg-eus-001/providers/Microsoft.ApiManagement/service/apim-eus-001/users/1",
+    "state": "active"
+  }
+}
