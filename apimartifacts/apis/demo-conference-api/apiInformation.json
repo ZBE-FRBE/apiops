@@ -1,14 +1,11 @@
 {
   "properties": {
-    "path": "conference",
     "apiRevision": "1",
-    "authenticationSettings": {
-      "oAuth2AuthenticationSettings": [],
-      "openidAuthenticationSettings": []
-    },
+    "authenticationSettings": {},
     "description": "A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session.",
-    "isCurrent": true,
     "displayName": "Demo Conference API",
+    "isCurrent": true,
+    "path": "conference",
     "protocols": [
       "http",
       "https"
