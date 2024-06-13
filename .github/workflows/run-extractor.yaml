@@ -100,6 +100,9 @@ jobs:
           $extractorFileName = "${{ runner.os }}" -like "*win*" ? "extractor.win-x64.exe" : "extractor.linux-x64.exe"
           $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$extractorFileName"
           $destinationFilePath = Join-Path "${{ runner.temp }}" "extractor.exe"
+          
+          Write-Host "Downloading extractor from $uri to $destinationFilePath"
+          
           Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
 
           if ("${{ runner.os }}" -like "*linux*")
