@@ -1,0 +1,15 @@
+	Kubernetes — a container‑orchestration platform that schedules, scales, and self‑heals containerized apps across a cluster of machines.
+	•	Pod — the smallest deployable unit: one or more tightly coupled containers sharing the same IP, ports, and volumes.
+	•	Replica — the desired number of identical pod instances a controller maintains for availability and scale.
+	•	Service types — ClusterIP: internal virtual IP only; NodePort: opens a port on every node’s IP and forwards to pods; LoadBalancer: provisions a cloud LB (public or private) that routes to the Service; ExternalName: DNS CNAME to an external name (no proxying); Headless (ClusterIP: None): no cluster IP—clients get individual pod IPs for direct discovery.
+	•	Node — a worker VM/bare‑metal machine running pods, managed by the kubelet and participating in the cluster network.
+	•	Istio — a Kubernetes service mesh providing traffic management, mTLS security, policy/authorization, and observability via sidecar proxies and a control plane.
+
+  	ClusterIP (default) – Creates an internal virtual IP reachable only inside the cluster; use for service‑to‑service traffic (e.g., API ↔ DB).
+	•	NodePort – Opens the same port on every node’s IP and forwards to pods; reachable as NodeIP:NodePort; simple but crude, often used on‑prem or behind your own external load balancer.
+	•	LoadBalancer – Asks the cloud to provision a network load balancer (public or private IP) and point it at the Service; the easiest way to expose a Service outside the cluster in cloud environments.
+	•	ExternalName – No proxying; just makes an internal DNS name that CNAMEs to an external host (e.g., a SaaS DB) so pods can use a cluster‑local name.
+	•	Headless (ClusterIP: None) – No virtual IP; DNS returns pod IPs directly; used for stateful sets or client‑side load balancing/discovery (e.g., Kafka, databases).
+
+Quick picks: internal only → ClusterIP; external in cloud → LoadBalancer; on‑prem/simple exposure → NodePort; alias an external service → ExternalName; stateful/discovery → Headless.
+(Note: Ingress isn’t a Service type; it’s an HTTP(S) router that sits in front of Services.)
