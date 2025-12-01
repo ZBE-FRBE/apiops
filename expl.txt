@@ -1,15 +1,159 @@
-	Kubernetes — a container‑orchestration platform that schedules, scales, and self‑heals containerized apps across a cluster of machines.
-	•	Pod — the smallest deployable unit: one or more tightly coupled containers sharing the same IP, ports, and volumes.
-	•	Replica — the desired number of identical pod instances a controller maintains for availability and scale.
-	•	Service types — ClusterIP: internal virtual IP only; NodePort: opens a port on every node’s IP and forwards to pods; LoadBalancer: provisions a cloud LB (public or private) that routes to the Service; ExternalName: DNS CNAME to an external name (no proxying); Headless (ClusterIP: None): no cluster IP—clients get individual pod IPs for direct discovery.
-	•	Node — a worker VM/bare‑metal machine running pods, managed by the kubelet and participating in the cluster network.
-	•	Istio — a Kubernetes service mesh providing traffic management, mTLS security, policy/authorization, and observability via sidecar proxies and a control plane.
 
-  	ClusterIP (default) – Creates an internal virtual IP reachable only inside the cluster; use for service‑to‑service traffic (e.g., API ↔ DB).
-	•	NodePort – Opens the same port on every node’s IP and forwards to pods; reachable as NodeIP:NodePort; simple but crude, often used on‑prem or behind your own external load balancer.
-	•	LoadBalancer – Asks the cloud to provision a network load balancer (public or private IP) and point it at the Service; the easiest way to expose a Service outside the cluster in cloud environments.
-	•	ExternalName – No proxying; just makes an internal DNS name that CNAMEs to an external host (e.g., a SaaS DB) so pods can use a cluster‑local name.
-	•	Headless (ClusterIP: None) – No virtual IP; DNS returns pod IPs directly; used for stateful sets or client‑side load balancing/discovery (e.g., Kafka, databases).
+⸻
 
-Quick picks: internal only → ClusterIP; external in cloud → LoadBalancer; on‑prem/simple exposure → NodePort; alias an external service → ExternalName; stateful/discovery → Headless.
-(Note: Ingress isn’t a Service type; it’s an HTTP(S) router that sits in front of Services.)
+✅ 1. Architecture & Deployment Model
+
+Ask Sonatype:
+	1.	Is a hybrid setup officially supported?
+	•	On-prem Nexus Repository Pro + SaaS Nexus Firewall/Lifecycle.
+	2.	How does the SaaS component connect to the on-prem Nexus?
+	•	Agents? Connectors? Outbound-only traffic? Firewall ports?
+	3.	What are the network prerequisites for hybrid mode?
+	•	IP ranges, protocols, required outbound URLs, proxy compatibility.
+	4.	Where is the data processed? (EU region required?)
+	5.	What happens if SaaS Firewall/Lifecycle is temporarily unreachable?
+	•	Does the on-prem repo continue working? What is degraded?
+
+⸻
+
+✅ 2. Security, Compliance & SBOM
+
+Ask Sonatype:
+	6.	How are SBOMs handled across hybrid setups?
+	•	Are SBOMs stored in SaaS? on-prem?
+	•	Export/import formats: CycloneDX, SPDX?
+	7.	Does Firewall block bad components before they’re stored on-prem?
+	•	Or after they land in quarantine?
+	8.	What license policies can be pre-defined?
+	•	MIT/Apache allowed? GPL/LGPL restricted?
+	•	Does SaaS push policy updates to on-prem automatically?
+	9.	Does Lifecycle provide transitive dependency analysis for Java, Python, Node, etc.
+	•	What about Scala/SBT?
+
+⸻
+
+✅ 3. CI/CD Integration
+
+(This matters because you have GitLab CE + Jenkins on-prem and GitHub Actions in cloud.)
+
+Ask Sonatype:
+	10.	How does Lifecycle integrate with multi-CI: GitLab CE, Jenkins, GitHub Actions?
+	11.	Do we get build-time enforcement?
+
+	•	Example: blocking merge if a certain severity is detected.
+
+	12.	Do you provide native plugins for Maven, Gradle, npm, Python?
+	13.	Does SaaS Lifecycle require developers to authenticate?
+
+	•	Or is it service-to-service?
+
+	14.	Can we automate policy evaluation in Pull Requests?
+
+⸻
+
+✅ 4. Repository Governance & Quarantine
+
+(Critical because you want to replicate your manual artifact approval workflow.)
+
+Ask:
+	15.	How does the quarantine flow work in hybrid mode?
+
+	•	Does SaaS decide allow/deny and push the decision to on-prem?
+
+	16.	Can we customize quarantine logic per repository?
+
+	•	E.g., prod repos more strict.
+
+	17.	Can Lifecycle/FW enforce retention of approved components only?
+	18.	What are the reporting dashboards in hybrid mode?
+
+	•	Do we see all repos (on-prem + cloud) in one UI?
+
+⸻
+
+✅ 5. Performance & Scalability
+	19.	Any performance impact on download/upload when hybrid scanning is used?
+	20.	Does scanning happen asynchronously?
+	21.	What is the typical latency for allow/deny decision from SaaS?
+
+⸻
+
+✅ 6. Cost, Licensing & Sizing
+	22.	What is the correct sizing for on-prem Nexus Repository Pro?
+
+	•	of developers, artifact size, concurrent builds, etc.
+
+	23.	Are Firewall + Lifecycle licensed per developer, per repo, or per component?
+	24.	Is hybrid priced differently than full on-prem?
+	25.	What discounts exist for long-term commitments (3–5 years)?
+
+⸻
+
+✅ 7. Migration from OSS → Pro
+
+You currently use Nexus OSS, so ask:
+	26.	What is the recommended migration path from Nexus OSS → Pro?
+	27.	Is there downtime required?
+	28.	Are all existing repos compatible?
+	29.	Any DB/schema migration steps?
+	30.	Can you help automated migration tests?
+
+⸻
+
+✅ 8. Product Roadmap (Critical for long-term decision vs JFrog)
+	31.	Is SaaS Lifecycle/Firewall the strategic direction?
+
+	•	Or are there major changes coming?
+
+	32.	What major features are planned in the next 12–24 months?
+	33.	How long will on-prem Nexus Repository be supported?
+
+⸻
+
+✅ 9. Comparison vs JFrog (ask diplomatically)
+	34.	How does Sonatype Lifecycle/FW compare with JFrog Xray on:
+
+	•	accuracy of CVEs
+	•	false positives
+	•	language support
+	•	license rules
+	•	speed of scanning
+	•	quarantine features
+	•	SBOM generation
+
+	35.	Does Sonatype provide a better “source of truth” for vulnerabilities than NVD alone?
+
+	•	(This is their strong point — let them explain.)
+
+⸻
+
+✅ 10. Operational Concerns
+	36.	Are there backup/restore procedures for hybrid mode?
+	37.	How do upgrades work (on-prem + SaaS interactions)?
+	38.	Is there a high-availability configuration recommended for Nexus Pro?
+	39.	Logs & monitoring: what is visible to us vs stored in SaaS?
+
+⸻
+
+⚡ Quick Version (30-second summary for the meeting)
+
+If you need to go fast:
+
+“We want Nexus Pro on-prem, but Lifecycle/Firewall as SaaS.
+We need to understand:
+	•	Integration architecture & requirements
+	•	Quarantine flow in hybrid mode
+	•	CI/CD scan automation
+	•	SBOM + license enforcement
+	•	Migration path OSS → Pro
+	•	Cost/licensing model
+	•	Roadmap + support timeline
+	•	Comparison points vs JFrog Xray
+	•	Operational risks (HA, upgrades, outages)”**
+
+⸻
+
+If you want, I can also generate:
+✅ a one-page meeting notes template
+✅ a decision matrix comparing Sonatype vs JFrog vs homegrown OSS stack
+✅ a follow-up email to send internally after the meeting
