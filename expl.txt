@@ -1,170 +1,38 @@
-1️⃣ One-page meeting notes template (fill live during the call)
+stages:
+  - sonar
 
-You can paste this in OneNote/Word and type as they speak.
+# Global CI variables
+variables:
+  # Ensure full history for proper blame & MR analysis in Sonar
+  GIT_DEPTH: "0"
+  # Extra Maven flags (batch mode, fail fast if tests fail)
+  MAVEN_CLI_OPTS: "-B -Dmaven.test.failure.ignore=false"
 
-⸻
-
-Meeting: Sonatype – Hybrid Nexus + Firewall + Lifecycle
-
-Date:
-Participants (Our side):
-Participants (Sonatype):
-
-⸻
-
-1. Context (our needs)
-	•	On-prem Nexus Repository OSS → Pro migration.
-	•	Want Sonatype Firewall + Lifecycle as SaaS, Nexus Repository on-prem.
-	•	CI/CD: GitLab CE + Jenkins (on-prem), GitHub Actions + (possibly Azure DevOps) in cloud.
-	•	Goal: central artifact store + automated security / license governance with minimal infra overhead.
-
-⸻
-
-2. Proposed Architecture (from Sonatype)
-	•	Deployment model:
-	•	Nexus Repository Pro: on-prem (VM / Kubernetes / etc.).
-	•	Firewall / Lifecycle: SaaS in region: ______
-	•	Connector/agent: ______ (outbound only? URLs/IPs?)
-	•	Data flows:
-	•	Dev tools → Nexus Pro → (SaaS FW/Lifecycle decision) → quarantine / release.
-	•	SBOM / reports stored where? ______
-
-⸻
-
-3. Security & Compliance
-	•	Authentication/authorization model (Nexus users & roles, SSO?): ______
-	•	Network requirements (outbound only? ports? proxies?): ______
-	•	Data sent to SaaS (components metadata? SBOM? source?) : ______
-	•	Data residency (EU or specific region): ______
-	•	How policies are defined and enforced (license, CVE severity, quarantines): ______
-
-⸻
-
-4. CI/CD & Tool Integration
-	•	Supported ecosystems: Maven, Gradle, npm, pip, Docker, etc.: ______
-	•	Integration with:
-	•	GitLab CE / Jenkins: ______
-	•	GitHub Actions: ______
-	•	Azure DevOps (pipelines, feeds): ______
-	•	PR/MR blocking or quality gates: ______
-
-⸻
-
-5. Operations & Migration
-	•	OSS → Pro migration steps & downtime: ______
-	•	Backup / restore procedures: ______
-	•	HA and scaling approach: ______
-	•	Upgrades (Repo Pro vs SaaS services): ______
-
-⸻
-
-6. Licensing / Pricing (high level)
-	•	License model (per dev / per app / other): ______
-	•	Estimated sizing for our context (#devs, #artifacts): ______
-	•	Any constraints/limits (repos, requests, component volume): ______
-
-⸻
-
-7. Next Steps
-	•	PoC scope: ______
-	•	Responsibilities (Sonatype vs us): ______
-	•	Target timeline: ______
-
-⸻
-
-2️⃣ Target solution: how it would work with Sonatype (structure for your doc)
-
-You can later turn this into a proper architecture doc. For now, think in 4 sections; I’ll give you bullet content you can reuse.
-
-⸻
-
-A. High-level architecture
-	•	Core repository:
-	•	One Nexus Repository Pro on-prem (replacing OSS).
-	•	Acts as single source of truth for:
-	•	Maven / Gradle (Java, Scala, Kotlin),
-	•	npm / Node,
-	•	Python (pip),
-	•	Docker images,
-	•	possibly NuGet if needed.
-	•	Security brain in SaaS:
-	•	Sonatype Firewall (SaaS): controls what can enter from external sources (Maven Central, npm registry, Docker Hub…).
-	•	Sonatype Lifecycle (SaaS): analyses artifacts (incl. transitive deps), enforces policies in CI/CD and in repos, provides dashboards, SBOM, license views.
-	•	Hybrid link:
-	•	Nexus Pro sends component coordinates + hashes/metadata to SaaS for evaluation.
-	•	SaaS returns policy decisions (allow, warn, quarantine, fail build).
-	•	Network is outbound-only from your DC to Sonatype SaaS through proxy/firewall.
-
-You can draw a simple diagram:
-
-Dev tools (Maven/Gradle/npm/pip/Docker + CI/CD) → Nexus Pro (on-prem) → Sonatype SaaS (Firewall/Lifecycle) → decision → Nexus (release or quarantine) → deploy to environments.
-
-⸻
-
-B. Security model (what you can say clearly)
-
-You want to show Security / Risk teams that this is controlled:
-	1.	Network & isolation
-	•	Nexus Pro stays on-prem in our DC (or private cloud).
-	•	Only outbound HTTPS connections from Nexus / scan agents to Sonatype SaaS endpoints.
-	•	No inbound traffic from internet to our network.
-	•	All traffic goes through our corporate proxy / firewall rules.
-	2.	Identity & access
-	•	Nexus Pro:
-	•	Integrated with our corporate IdP / LDAP / AD / Entra ID for SSO (if we choose).
-	•	Repos secured by roles (dev, ops, release manager, etc.).
-	•	Sonatype SaaS UI:
-	•	Access controlled by Sonatype’s own IAM / SSO integration (ask them which: SAML / OIDC).
-	•	Only security / platform / lead dev profiles get access.
-	3.	Data sent to SaaS
-	•	Typically: component GAV/coordinates, checksums, metadata, SBOM – not full proprietary source code.
-	•	Ask them to confirm exact data categories and data residency (EU/EEA ideally).
-	•	Policies & scan results are stored in SaaS; only package artifacts remain in your Nexus on-prem.
-	4.	Policies & enforcement
-	•	Define policies like:
-	•	Block CVEs >= Critical
-	•	Warn for High
-	•	Ban certain licenses (GPLv3, AGPL, etc.)
-	•	Firewall applies these on inbound components (from remote repos).
-	•	Lifecycle applies them on builds (CI/CD) and repos (existing components).
-	•	If SaaS unavailable:
-	•	Define fallback behavior (fail closed vs fail open; ask this explicitly).
-
-You can summarise:
-
-“Nexus is our controlled internal store. Firewall + Lifecycle in SaaS act as a policy decision service for security and licenses, via outbound-only connections, with no source code pushed out.”
-
-⸻
-
-C. CI/CD integration (GitLab/Jenkins/GitHub/Azure DevOps)
-
-You’ll say in the doc:
-	•	All CI/CD pipelines (GitLab, Jenkins, GitHub Actions, Azure DevOps) consume and publish artifacts via Nexus Pro.
-	•	Lifecycle provides:
-	•	Build plugins (e.g. Maven, Gradle, npm, etc.) so that each build is scanned.
-	•	Optionally quality gates: pipeline fails if policy is violated.
-	•	You can standardize on:
-	•	A shared CI template (GitLab YAML / Jenkins shared library / ADO pipeline template) that:
-	•	builds,
-	•	runs tests,
-	•	runs Sonatype Lifecycle scan,
-	•	pushes artifact → Nexus Pro → potentially quarantined or released.
-
-⸻
-
-D. Migration from Nexus OSS → Pro + SaaS
-
-High-level steps:
-	1.	Inventory existing repos and formats.
-	2.	Install Nexus Pro in parallel or upgrade existing OSS to Pro (ask Sonatype what they recommend).
-	3.	Configure security & roles (reuse existing, harden where needed).
-	4.	Connect Nexus Pro to Sonatype SaaS (Firewall/Lifecycle).
-	5.	Enable policies in “monitor” mode first (do not block, just observe).
-	6.	After a PoC / pilot, switch to “enforce” mode: block new critical CVEs / banned licenses.
-	7.	Gradually onboard all CI/CD pipelines.
-
-⸻
-
-3️⃣ Azure DevOps + Nexus Pro: is it possible?
-
-Short answer: Yes, absolutely.
+sonar_maven:
+  stage: sonar
+  tags:
+    - shell          # <-- this makes the job run on your shell runner
+  cache:
+    key: "${CI_PROJECT_NAME}-m2"
+    paths:
+      - .m2/repository
+  before_script:
+    - echo "Running on shell runner"
+    - mvn -v
+  script:
+    # Use a local .m2 repo in the project workspace (good for caching)
+    - mkdir -p .m2
+    - mvn $MAVEN_CLI_OPTS \
+        -Dmaven.repo.local="${CI_PROJECT_DIR}/.m2/repository" \
+        clean verify \
+        org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+        -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
+        -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+        -Dsonar.host.url="$SONAR_HOST_URL" \
+        -Dsonar.token="$SONAR_TOKEN" \
+        -Dsonar.qualitygate.wait=true
+  rules:
+    # Run on main branch
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    # And on merge request pipelines (for MR decoration)
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
