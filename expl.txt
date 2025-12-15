@@ -1,38 +1,58 @@
 stages:
+  - build
+  - test
   - sonar
 
-# Global CI variables
 variables:
-  # Ensure full history for proper blame & MR analysis in Sonar
+  # Full history helps Sonar with blame / MR analysis
   GIT_DEPTH: "0"
-  # Extra Maven flags (batch mode, fail fast if tests fail)
+  # Common Maven flags: batch mode, fail fast if tests fail
   MAVEN_CLI_OPTS: "-B -Dmaven.test.failure.ignore=false"
 
-sonar_maven:
+# 1) Build JAR (no tests, just compile/package)
+build:
+  stage: build
+  tags:
+    - shell            # <-- uses your shell runner
+  script:
+    - mvn $MAVEN_CLI_OPTS -Dmaven.test.skip=true clean package
+  artifacts:
+    paths:
+      - target/*.jar
+    expire_in: 1 week
+
+# 2) Run tests
+test:
+  stage: test
+  tags:
+    - shell
+  needs:
+    - build
+  script:
+    - mvn $MAVEN_CLI_OPTS test
+
+# 3) SonarQube analysis (static analysis; tests already ran)
+sonar:
   stage: sonar
   tags:
-    - shell          # <-- this makes the job run on your shell runner
+    - shell
+  # Optional: cache local Maven repo for faster builds
   cache:
     key: "${CI_PROJECT_NAME}-m2"
     paths:
       - .m2/repository
-  before_script:
-    - echo "Running on shell runner"
-    - mvn -v
   script:
-    # Use a local .m2 repo in the project workspace (good for caching)
     - mkdir -p .m2
     - mvn $MAVEN_CLI_OPTS \
         -Dmaven.repo.local="${CI_PROJECT_DIR}/.m2/repository" \
-        clean verify \
         org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-        -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
-        -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+        -Dsonar.projectKey="$CI_PROJECT_PATH_SLUG" \
+        -Dsonar.projectName="$CI_PROJECT_PATH" \
         -Dsonar.host.url="$SONAR_HOST_URL" \
         -Dsonar.token="$SONAR_TOKEN" \
         -Dsonar.qualitygate.wait=true
   rules:
     # Run on main branch
     - if: '$CI_COMMIT_BRANCH == "main"'
-    # And on merge request pipelines (for MR decoration)
+    # And on merge requests (for MR decoration)
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
