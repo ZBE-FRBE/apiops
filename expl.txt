@@ -36,3 +36,20 @@ jobs:
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+
+FROM gcr.io/forgerock-io/java-21:latest
+
+ENV INSTALL_DIR=/opt/ig
+ENV IG_INSTANCE_DIR=/var/ig
+
+COPY --chown=forgerock:root . "${INSTALL_DIR}"
+
+RUN chmod 755 "${INSTALL_DIR}/bin/start.sh" "${INSTALL_DIR}/bin/stop.sh" \
+ && mkdir -p "${IG_INSTANCE_DIR}" \
+ && chown -R forgerock:root "${IG_INSTANCE_DIR}" "${INSTALL_DIR}" \
+ && chmod -R u+rwX,g+rwX "${IG_INSTANCE_DIR}" "${INSTALL_DIR}"
+
+USER 11111
+
+# exec-form = cleaner in containers (signals, no extra shell)
+ENTRYPOINT ["/opt/ig/bin/start.sh", "/var/ig"]
