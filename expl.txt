@@ -1,59 +1,13 @@
-<project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.example</groupId>
-  <artifactId>image-mover</artifactId>
-  <version>1.0</version>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>jib-maven-plugin</artifactId>
-        <version>3.4.0</version>
-        <configuration>
-          <from>
+<plugin>
+    <groupId>com.google.cloud.tools</groupId>
+    <artifactId>jib-maven-plugin</artifactId>
+    <version>3.4.0</version>
+    <configuration>
+        <from>
             <image>gcr.io/distroless/java21-debian12</image>
-          </from>
-          
-          <to>
-            <image>registry.gitlab.example.com/my-group/base-images/java21:distroless</image>
-            <auth>
-               <username>YOUR_GITLAB_USERNAME</username>
-               <password>YOUR_GITLAB_TOKEN</password>
-            </auth>
-          </to>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-</project>
-
-<project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.example</groupId>
-  <artifactId>image-mover</artifactId>
-  <version>1.0</version>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>jib-maven-plugin</artifactId>
-        <version>3.4.0</version>
-        <configuration>
-          <from>
-            <image>gcr.io/distroless/java21-debian12</image>
-          </from>
-          
-          <to>
-            <image>registry.gitlab.example.com/my-group/base-images/java21:distroless</image>
-            <auth>
-               <username>YOUR_GITLAB_USERNAME</username>
-               <password>YOUR_GITLAB_TOKEN</password>
-            </auth>
-          </to>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-</project>
+        </from>
+        <to>
+            <image>file://${project.build.directory}/base-java21.tar</image>
+        </to>
+    </configuration>
+</plugin>
