@@ -1,13 +1,120 @@
-<plugin>
-    <groupId>com.google.cloud.tools</groupId>
-    <artifactId>jib-maven-plugin</artifactId>
-    <version>3.4.0</version>
-    <configuration>
-        <from>
-            <image>gcr.io/distroless/java21-debian12</image>
-        </from>
-        <to>
-            <image>file://${project.build.directory}/base-java21.tar</image>
-        </to>
-    </configuration>
-</plugin>
+package com.degroofpetercam.slp.experience.api.admin.client.support;
+
+import org.springframework.core.io.FileSystemResource;
+
+import java.io.File;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public final class DeleteOnCloseFileResource
+        extends FileSystemResource {
+
+    private final Path path;
+
+    public DeleteOnCloseFileResource(File file) {
+        super(file);
+        this.path = file.toPath();
+    }
+
+    @Override
+    public InputStream getInputStream() throws IOException {
+        var delegate = super.getInputStream();
+
+        return new FilterInputStream(delegate) {
+
+            private boolean closed;
+
+            @Override
+            public void close() throws IOException {
+                if (closed) {
+                    return;
+                }
+
+                closed = true;
+
+                try {
+                    super.close();
+                } finally {
+                    Files.deleteIfExists(path);
+                }
+            }
+        };
+    }
+}
+
+-----
+@TempDir
+Path temporaryDirectory;
+
+@Test
+void should_wrap_process_file_and_delete_it_after_stream_close()
+        throws Exception {
+    byte[] expectedContent = new byte[]{1, 2, 3};
+
+    File processDownloadedFile =
+            Files.write(
+                    temporaryDirectory.resolve("document.pdf"),
+                    expectedContent
+            ).toFile();
+
+    var headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_PDF);
+    headers.setContentLength(expectedContent.length);
+    headers.set(
+            HttpHeaders.CONTENT_DISPOSITION,
+            "attachment; filename=\"document.pdf\""
+    );
+
+    given(processApi
+            .downloadUploadedDocumentTemplateVersionWithHttpInfo(
+                    100L,
+                    com.degroofpetercam.slp.domain.process.asset
+                            .Language.EN,
+                    2
+            ))
+            .willReturn(
+                    new ResponseEntity<>(
+                            processDownloadedFile,
+                            headers,
+                            HttpStatus.OK
+                    )
+            );
+
+    var actual =
+            service.downloadUploadedDocumentTemplateVersion(
+                    100L,
+                    Language.EN,
+                    2
+            );
+
+    assertThat(actual.mediaType())
+            .isEqualTo(MediaType.APPLICATION_PDF);
+
+    assertThat(actual.sizeBytes())
+            .isEqualTo(3);
+
+    assertThat(actual.contentDisposition())
+            .isEqualTo(
+                    "attachment; filename=\"document.pdf\""
+            );
+
+    /*
+     * The file still exists before HTTP streaming starts.
+     */
+    assertThat(processDownloadedFile).exists();
+
+    try (var inputStream =
+                 actual.content().getInputStream()) {
+        assertThat(inputStream.readAllBytes())
+                .containsExactly(expectedContent);
+    }
+
+    /*
+     * Closing the response stream removes the generated-client temporary file.
+     */
+    assertThat(processDownloadedFile)
+            .doesNotExist();
+}
